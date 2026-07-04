@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="000c1013-909f-42cd-b94a-9ca94c42a030" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/pythonProject1.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/Ailenship.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/Rock.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/Spaceinvaders.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/Västerås_bg_1.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/Västerås_bg_2.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/apa.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/arrow_bottom_left.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/arrow_bottom_right.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/arrow_down.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/arrow_left.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/arrow_right.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/arrow_top_left.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/arrow_top_right.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/arrow_up.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/bg_pic.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/blue_enemy_ship.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/cat.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/extra_life.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/game_over.mp3" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/heart_icon.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/honda.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/honda2.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/laser.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/laser_sound.mp3" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/main_bg.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/polis.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/pop.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/quick_shot.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/spaceship.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pics/start.wav" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 0
+}]]></component>
+  <component name="ProjectId" id="3G3LycxfJ9vAmwYJ5uhnYFcRneY" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.Spaceinvaders.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "C:/Users/William/PycharmProjects/pythonProject1"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\William\PycharmProjects\pythonProject1" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\William\PycharmProjects\pythonProject1\pics" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-0509580d9d50-746f403e7f0c-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-241.14494.241" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="000c1013-909f-42cd-b94a-9ca94c42a030" name="Changes" comment="" />
+      <created>1783195561926</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1783195561926</updated>
+    </task>
+    <servers />
+  </component>
+</project>
