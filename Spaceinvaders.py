@@ -155,6 +155,71 @@ class PurpleEnemy:
                 self.direction1 = "höger"
 
 
+class DiverEnemy:
+    # Hovers like Blue/Purple, but periodically locks onto the player's x
+    # and dive-bombs straight down through the play field, then is removed
+    # once it flies off the bottom. Doesn't shoot -- the dive itself is the threat.
+    def __init__(self):
+        self.x = random.randint(40, width - 40)
+        self.y = random.randint(60, 160)
+        self.xchange = 4
+        self.direction1 = "höger"
+        self.state = "hover"  # "hover" -> "diving"
+        self.dive_timer = Time()
+        self.dive_timer.start()
+        self.dive_cooldown = random.randint(1800, 3200)
+        self.dive_speed = 10
+        self.xchange_dive = 0
+        self.ychange_dive = 0
+
+    def update(self, player_x):
+        if self.state == "hover":
+            if self.direction1 == "höger":
+                self.x += self.xchange
+                if self.x >= width - 40:
+                    self.direction1 = "vänster"
+            else:
+                self.x -= self.xchange
+                if self.x <= 40:
+                    self.direction1 = "höger"
+
+            if self.dive_timer.peek() > self.dive_cooldown:
+                self.state = "diving"
+                dx = player_x - self.x
+                dy = height - self.y
+                dist = max(1, (dx ** 2 + dy ** 2) ** 0.5)
+                self.xchange_dive = dx / dist * self.dive_speed
+                self.ychange_dive = dy / dist * self.dive_speed
+        else:
+            self.x += self.xchange_dive
+            self.y += self.ychange_dive
+
+    def is_offscreen(self):
+        return self.state == "diving" and (self.y > height + 50 or self.x < -50 or self.x > width + 50)
+
+
+class Asteroid:
+    # Rare hazard that crosses the screen horizontally at a fixed height,
+    # from the left or right edge, instead of the usual top-down descent.
+    # Forces the player to change their Y position to dodge, rather than
+    # the left/right weaving that every other enemy already demands.
+    # No art asset yet -- drawn as a simple rock shape in draw code below.
+    def __init__(self):
+        self.from_left = random.choice([True, False])
+        self.x = -50 if self.from_left else width + 50
+        self.y = random.randint(80, height - 80)
+        self.speed = random.randint(6, 10)
+        self.xchange = self.speed if self.from_left else -self.speed
+        self.radius = 30
+        self.health = 2
+
+    def update(self):
+        self.x += self.xchange
+
+    def is_offscreen(self):
+        return self.x < -80 or self.x > width + 80
+
+
 class EnemyShot:
     def __init__(self, x, y, target_x, target_y, speed=7):
         self.x = x
@@ -202,14 +267,16 @@ class Time:
 
 
 class Shot:
-    def __init__(self, x, y, laserspeed=-10):
+    def __init__(self, x, y, laserspeed=-10, xchange=0):
         self.x = x
         self.y = y
         self.laserspeed = laserspeed
+        self.xchange = xchange  # sideways component, used by the spread-shot drop
         self.image = flipped_laserimg if laserspeed > 0 else laserimg
 
     def update(self):
         self.y += self.laserspeed
+        self.x += self.xchange
 
     def is_offscreen(self):
         return self.y < -50 or self.y > height + 50 or self.x > width + 50 or self.x < -50
@@ -296,19 +363,41 @@ def draw_health_bar(x, y, health, max_health):
     pygame.draw.rect(screen, Red, (bar_x, bar_y, health_width, bar_height))
 
 
+def draw_asteroid(x, y, radius):
+    # Placeholder rock shape until real art exists -- rough circle with a
+    # darker core and a couple of craters so it doesn't read as a plain ball.
+    pygame.draw.circle(screen, Gray, (int(x), int(y)), radius)
+    pygame.draw.circle(screen, (90, 90, 90), (int(x), int(y)), radius, 4)
+    pygame.draw.circle(screen, (110, 110, 110), (int(x) - radius // 3, int(y) - radius // 4), radius // 4)
+    pygame.draw.circle(screen, (110, 110, 110), (int(x) + radius // 4, int(y) + radius // 3), radius // 5)
+
+
 def maybe_spawn_drop(x, y, lives, has_extra_life, drops, ball_list):
     # Rarer the more enemies are already on screen, so drops don't pile up
     enemy_count = len(ball_list)
     drop_chance = max(0.05, 0.15 - 0.01 * enemy_count)
     if random.random() > drop_chance:
         return
-    options = ["rapidfire"]
+    options = ["rapidfire", "spread"]
     if lives < 3:
         options.append("life")
     elif not has_extra_life:
         options.append("golden")
     drops.append(Drop(x, y, random.choice(options)))
 
+
+def spawn_formation(ball_list, count=5, spacing=60):
+    # Drops a V-shaped wave of regular enemies all at once, wings trailing
+    # behind the center ship -- a scripted "event" spawn on top of the
+    # normal random trickle, similar to Galaga-style entrance waves.
+    center_x = width // 2
+    for i in range(count):
+        offset = i - count // 2
+        e = Enemy(0, 0)
+        e.x = max(40, min(width - 40, center_x + offset * spacing))
+        e.y = 40 + abs(offset) * 24
+        e.direction1 = "höger" if offset % 2 == 0 else "vänster"
+        ball_list.append(e)
 
 
 def credits_screen():
@@ -539,6 +628,8 @@ def main():
     global ball_list
     global blue_list
     global purple_list
+    global diver_list
+    global asteroid_list
     global shots
     global enemy_shots
     global drops
@@ -560,11 +651,20 @@ def main():
     invincible_until = 0
     shake_until = 0
     rapidfire_until = 0
+    spreadshot_until = 0
     enemy_timer = Time()
+    wave_timer = Time()
+    wave_timer.start()
+    wave_cooldown = 18000  # first formation wave after 18s
+    asteroid_timer = Time()
+    asteroid_timer.start()
+    asteroid_cooldown = random.randint(5000, 9000)  # rare -- re-rolled after each spawn
 
     ball_list = []
     blue_list = []
     purple_list = []
+    diver_list = []
+    asteroid_list = []
     shots = []
     enemy_shots = []
     drops = []
@@ -616,6 +716,10 @@ def main():
             for purple in purple_list:  # Purple enemy ships
                 screen.blit(purple_ailenimg, (purple.x - 24, purple.y - 40))
                 draw_health_bar(purple.x, purple.y, purple.health, purple.max_health)
+            for diver in diver_list:  # Diver enemies (reuse purple ship art for now)
+                screen.blit(purple_ailenimg, (diver.x - 24, diver.y - 40))
+            for asteroid in asteroid_list:  # Sideways-crossing asteroid hazards
+                draw_asteroid(asteroid.x, asteroid.y, asteroid.radius)
             for enemy_shot in enemy_shots:
                 screen.blit(laserimg, (enemy_shot.x - 10, enemy_shot.y - 10))
 
@@ -644,6 +748,13 @@ def main():
                 cooldown = 120 if pygame.time.get_ticks() < rapidfire_until else 300
                 if t.peek() > cooldown:  # Reduced cooldown for better feel
                     shots.append(Shot(p.x, p.y, laserspeed))
+                    if pygame.time.get_ticks() < spreadshot_until:
+                        # Two extra bolts fired at roughly 45 degrees off the
+                        # main shot -- xchange is laserspeed's magnitude scaled
+                        # by sin(45)=cos(45)=~0.7 so all three travel at equal speed
+                        side_speed = abs(laserspeed) * 0.7
+                        shots.append(Shot(p.x, p.y, laserspeed, xchange=side_speed))
+                        shots.append(Shot(p.x, p.y, laserspeed, xchange=-side_speed))
                     laser_sound.play()
                     t.start()
 
@@ -676,20 +787,44 @@ def main():
                     spawn = "false"
 
             if spawn == "true":
-                spawn_cooldown = max(100, 1200 - score * 18)
+                # Cooldown ramps down faster and floors lower than before, so late-game
+                # spawns stay dense instead of plateauing.
+                spawn_cooldown = max(70, 1200 - score * 22)
                 if enemy_timer.peek() > spawn_cooldown:
                     blue_chance = min(0.38, 0.08 + score * 0.0015)
                     purple_chance = min(0.18, 0.03 + score * 0.001)
+                    diver_chance = min(0.15, 0.02 + score * 0.001)
                     roll = random.random()
                     if len(purple_list) < 9 and roll < purple_chance:
                         purple_list.append(PurpleEnemy())
                     elif len(blue_list) < 9 and roll < purple_chance + blue_chance:
                         blue_list.append(BlueEnemy())
+                    elif len(diver_list) < 5 and roll < purple_chance + blue_chance + diver_chance:
+                        diver_list.append(DiverEnemy())
                     else:
                         ball_list.append(Enemy(p.x, p.y))
                     enemy_timer.start()
 
-            enemy_speed = min(12, 5 + score // 25)
+            # Scripted formation wave: every so often, drop a synchronized V-wave
+            # of regular enemies on top of the normal random trickle. Interval
+            # tightens as score climbs so waves come more often late-game.
+            wave_cooldown = max(9000, 18000 - score * 60)
+            if wave_timer.peek() > wave_cooldown:
+                wave_size = min(9, 5 + score // 30)
+                spawn_formation(ball_list, count=wave_size)
+                wave_timer.start()
+
+            # Rare sideways asteroid -- forces a height dodge instead of the
+            # usual left/right weaving. Kept deliberately infrequent.
+            if asteroid_timer.peek() > asteroid_cooldown and len(asteroid_list) < 2:
+                asteroid_list.append(Asteroid())
+                asteroid_timer.start()
+                asteroid_cooldown = random.randint(5000, 9000)
+
+            # Speed cap raised and ramps a bit quicker than before, since spawn
+            # density alone plateaus difficulty -- movement speed needs to keep
+            # climbing too.
+            enemy_speed = min(16, 5 + score // 18)
             for ball in ball_list:
                 if ball.direction1 == "höger":
                     ball.x += enemy_speed
@@ -722,6 +857,19 @@ def main():
                     purple.shot_timer.start()
                     purple.shot_cooldown = random.randint(1800, 3500)
 
+            # Diver enemies hover, then dive-bomb toward the player's x and
+            # fly off the bottom of the screen -- no shots, the dive is the threat
+            for diver in diver_list[:]:
+                diver.update(p.x)
+                if diver.is_offscreen():
+                    diver_list.remove(diver)
+
+            # Asteroids just fly straight across and off the far edge
+            for asteroid in asteroid_list[:]:
+                asteroid.update()
+                if asteroid.is_offscreen():
+                    asteroid_list.remove(asteroid)
+
             # Player movement with boundaries
             p.y += p.y_change
             p.x += p.x_change
@@ -748,6 +896,18 @@ def main():
                                 hit = True
                                 break
                 if not hit:
+                    for diver in diver_list:
+                        if p.x + 33 >= diver.x - 24 and p.x - 33 <= diver.x + 24:
+                            if p.y + 40 > diver.y - 40 and p.y - 40 < diver.y + 40:
+                                hit = True
+                                break
+                if not hit:
+                    for asteroid in asteroid_list:
+                        if p.x + 33 >= asteroid.x - asteroid.radius and p.x - 33 <= asteroid.x + asteroid.radius:
+                            if p.y + 40 > asteroid.y - asteroid.radius and p.y - 40 < asteroid.y + asteroid.radius:
+                                hit = True
+                                break
+                if not hit:
                     for enemy_shot in enemy_shots[:]:
                         if p.x + 33 >= enemy_shot.x - 10 and p.x - 33 <= enemy_shot.x + 10:
                             if p.y + 40 > enemy_shot.y - 10 and p.y - 40 < enemy_shot.y + 10:
@@ -769,13 +929,11 @@ def main():
 
             # Shot collision with enemies
             for shot in shots[:]:
-                for ball in ball_list:
+                for ball in ball_list[:]:
                     if shot.x + 10 >= ball.x - 24 and shot.x - 10 <= ball.x + 24:
                         if shot.y + 35 > ball.y - 40 and shot.y - 35 < ball.y + 40:
                             maybe_spawn_drop(ball.x, ball.y, lives, has_extra_life, drops, ball_list)
-                            ball.y = height + 100
-                            ball.x = width + 100
-                            ball.direction1 = ""
+                            ball_list.remove(ball)
                             score += 1
                             if shot in shots:
                                 shots.remove(shot)
@@ -807,6 +965,32 @@ def main():
                                 shots.remove(shot)
                             break
 
+            # Shot collision with diver enemies (worth more -- riskier to fight)
+            for shot in shots[:]:
+                for diver in diver_list[:]:
+                    if shot.x + 10 >= diver.x - 24 and shot.x - 10 <= diver.x + 24:
+                        if shot.y + 35 > diver.y - 40 and shot.y - 35 < diver.y + 40:
+                            maybe_spawn_drop(diver.x, diver.y, lives, has_extra_life, drops, ball_list)
+                            diver_list.remove(diver)
+                            score += 4
+                            if shot in shots:
+                                shots.remove(shot)
+                            break
+
+            # Shot collision with asteroids -- takes 2 hits, no drop (it's a
+            # hazard, not a farmable enemy), modest score for the risk of lining up a shot
+            for shot in shots[:]:
+                for asteroid in asteroid_list[:]:
+                    if shot.x + 10 >= asteroid.x - asteroid.radius and shot.x - 10 <= asteroid.x + asteroid.radius:
+                        if shot.y + 35 > asteroid.y - asteroid.radius and shot.y - 35 < asteroid.y + asteroid.radius:
+                            asteroid.health -= 1
+                            if asteroid.health <= 0:
+                                asteroid_list.remove(asteroid)
+                                score += 2
+                            if shot in shots:
+                                shots.remove(shot)
+                            break
+
             # Move enemy shots and clear ones that leave the screen
             for enemy_shot in enemy_shots[:]:
                 enemy_shot.update()
@@ -827,6 +1011,8 @@ def main():
                             has_extra_life = True
                         elif drop.drop_type == "rapidfire":
                             rapidfire_until = pygame.time.get_ticks() + 8000
+                        elif drop.drop_type == "spread":
+                            spreadshot_until = pygame.time.get_ticks() + 8000
                         drops.remove(drop)
 
         # Draw everything
@@ -853,6 +1039,10 @@ def main():
         for purple in purple_list:  # Purple enemy ships
             screen.blit(purple_ailenimg, (purple.x - 24 + sx, purple.y - 40 + sy))
             draw_health_bar(purple.x + sx, purple.y + sy, purple.health, purple.max_health)
+        for diver in diver_list:  # Diver enemies (reuse purple ship art for now)
+            screen.blit(purple_ailenimg, (diver.x - 24 + sx, diver.y - 40 + sy))
+        for asteroid in asteroid_list:  # Sideways-crossing asteroid hazards
+            draw_asteroid(asteroid.x + sx, asteroid.y + sy, asteroid.radius)
         for enemy_shot in enemy_shots:
             screen.blit(laserimg, (enemy_shot.x - 10 + sx, enemy_shot.y - 10 + sy))
         for drop in drops:
