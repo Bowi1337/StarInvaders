@@ -70,6 +70,7 @@ quit_msg = font.render("Press ESC to quit", True, Red)
 # Load images once
 ailenimg = pygame.image.load(resource_path("Ailenship.png"))
 blue_ailenimg = pygame.image.load(resource_path("blue_enemy_ship.png"))
+purple_ailenimg = pygame.image.load(resource_path("purple_enemy_ship.png"))
 playership = pygame.image.load(resource_path("spaceship.png"))
 laserimg = pygame.image.load(resource_path("laser.png"))
 flipped_laserimg = pygame.transform.flip(laserimg, False, True)
@@ -117,6 +118,30 @@ class BlueEnemy:
         self.shot_timer = Time()
         self.shot_timer.start()
         self.shot_cooldown = random.randint(1500, 3000)
+
+    def update(self):
+        # Hovers side to side near the top instead of descending
+        if self.direction1 == "höger":
+            self.x += self.xchange
+            if self.x >= width - 40:
+                self.direction1 = "vänster"
+        else:
+            self.x -= self.xchange
+            if self.x <= 40:
+                self.direction1 = "höger"
+
+
+class PurpleEnemy:
+    def __init__(self):
+        self.x = random.randint(40, width - 40)
+        self.y = random.randint(60, 160)
+        self.xchange = 3
+        self.direction1 = "höger"
+        self.health = 3
+        self.max_health = 3
+        self.shot_timer = Time()
+        self.shot_timer.start()
+        self.shot_cooldown = random.randint(1800, 3500)
 
     def update(self):
         # Hovers side to side near the top instead of descending
@@ -259,6 +284,16 @@ def draw_pause_menu():
     screen.blit(pause_text, (width // 2 - pause_text.get_width() // 2, height // 2 - 100))
     screen.blit(resume_text, (width // 2 - resume_text.get_width() // 2, height // 2))
     screen.blit(menu_text, (width // 2 - menu_text.get_width() // 2, height // 2 + 50))
+
+
+def draw_health_bar(x, y, health, max_health):
+    bar_width = 48
+    bar_height = 6
+    bar_x = x - bar_width // 2
+    bar_y = y - 55
+    pygame.draw.rect(screen, Gray, (bar_x, bar_y, bar_width, bar_height))
+    health_width = int(bar_width * (health / max_health))
+    pygame.draw.rect(screen, Red, (bar_x, bar_y, health_width, bar_height))
 
 
 def maybe_spawn_drop(x, y, lives, has_extra_life, drops, ball_list):
@@ -503,6 +538,7 @@ def intro():
 def main():
     global ball_list
     global blue_list
+    global purple_list
     global shots
     global enemy_shots
     global drops
@@ -528,6 +564,7 @@ def main():
 
     ball_list = []
     blue_list = []
+    purple_list = []
     shots = []
     enemy_shots = []
     drops = []
@@ -576,6 +613,9 @@ def main():
                 screen.blit(ailenimg, (ball.x - 24, ball.y - 40))
             for blue in blue_list:  # Blue enemy ships
                 screen.blit(blue_ailenimg, (blue.x - 24, blue.y - 40))
+            for purple in purple_list:  # Purple enemy ships
+                screen.blit(purple_ailenimg, (purple.x - 24, purple.y - 40))
+                draw_health_bar(purple.x, purple.y, purple.health, purple.max_health)
             for enemy_shot in enemy_shots:
                 screen.blit(laserimg, (enemy_shot.x - 10, enemy_shot.y - 10))
 
@@ -638,8 +678,12 @@ def main():
             if spawn == "true":
                 spawn_cooldown = max(100, 1200 - score * 18)
                 if enemy_timer.peek() > spawn_cooldown:
-                    blue_chance = min(0.35, 0.08 + score * 0.0015)
-                    if len(blue_list) < 7 and random.random() < blue_chance:
+                    blue_chance = min(0.38, 0.08 + score * 0.0015)
+                    purple_chance = min(0.18, 0.03 + score * 0.001)
+                    roll = random.random()
+                    if len(purple_list) < 9 and roll < purple_chance:
+                        purple_list.append(PurpleEnemy())
+                    elif len(blue_list) < 9 and roll < purple_chance + blue_chance:
                         blue_list.append(BlueEnemy())
                     else:
                         ball_list.append(Enemy(p.x, p.y))
@@ -670,6 +714,14 @@ def main():
                     blue.shot_timer.start()
                     blue.shot_cooldown = random.randint(1500, 3000)
 
+            # Purple enemies hover, tank hits, and fire aimed shots
+            for purple in purple_list:
+                purple.update()
+                if purple.shot_timer.peek() > purple.shot_cooldown:
+                    enemy_shots.append(EnemyShot(purple.x, purple.y, p.x, p.y))
+                    purple.shot_timer.start()
+                    purple.shot_cooldown = random.randint(1800, 3500)
+
             # Player movement with boundaries
             p.y += p.y_change
             p.x += p.x_change
@@ -687,6 +739,12 @@ def main():
                     for blue in blue_list:
                         if p.x + 33 >= blue.x - 24 and p.x - 33 <= blue.x + 24:
                             if p.y + 40 > blue.y - 40 and p.y - 40 < blue.y + 40:
+                                hit = True
+                                break
+                if not hit:
+                    for purple in purple_list:
+                        if p.x + 33 >= purple.x - 24 and p.x - 33 <= purple.x + 24:
+                            if p.y + 40 > purple.y - 40 and p.y - 40 < purple.y + 40:
                                 hit = True
                                 break
                 if not hit:
@@ -735,6 +793,20 @@ def main():
                                 shots.remove(shot)
                             break
 
+            # Shot collision with purple enemies
+            for shot in shots[:]:
+                for purple in purple_list[:]:
+                    if shot.x + 10 >= purple.x - 24 and shot.x - 10 <= purple.x + 24:
+                        if shot.y + 35 > purple.y - 40 and shot.y - 35 < purple.y + 40:
+                            purple.health -= 1
+                            if purple.health <= 0:
+                                maybe_spawn_drop(purple.x, purple.y, lives, has_extra_life, drops, ball_list)
+                                purple_list.remove(purple)
+                                score += 5
+                            if shot in shots:
+                                shots.remove(shot)
+                            break
+
             # Move enemy shots and clear ones that leave the screen
             for enemy_shot in enemy_shots[:]:
                 enemy_shot.update()
@@ -778,6 +850,9 @@ def main():
             screen.blit(ailenimg, (ball.x - 24 + sx, ball.y - 40 + sy))
         for blue in blue_list:  # Blue enemy ships
             screen.blit(blue_ailenimg, (blue.x - 24 + sx, blue.y - 40 + sy))
+        for purple in purple_list:  # Purple enemy ships
+            screen.blit(purple_ailenimg, (purple.x - 24 + sx, purple.y - 40 + sy))
+            draw_health_bar(purple.x + sx, purple.y + sy, purple.health, purple.max_health)
         for enemy_shot in enemy_shots:
             screen.blit(laserimg, (enemy_shot.x - 10 + sx, enemy_shot.y - 10 + sy))
         for drop in drops:
